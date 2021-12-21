@@ -1,5 +1,5 @@
 # Публикуем комиксы во ВКонтакте
-
+Модуль предназначен для постинга случайного комикса с https://xkcd.com/ на стену в сообщество ВКонтакте
 
 
 # Как установить
@@ -13,15 +13,18 @@ pip install -r requirements.txt
 ### Переменные окружения
 Для корректной работы модуля необходимы следующие переменные окружения:
 
-`INSTAGRAM_LOGIN = 'YourLogin'`
+`VK_ACCESS_TOKEN = 'Your_VK_App_Access_Token'`
+1. Создать приложение в VK.
+2. По номеру приложения `client_id` используя [Implicit Flow](https://dev.vk.com/api/access-token/implicit-flow-user) получить `access_token`
+3. Необходимы права `photos`, `groups`, `wall` и `offline`
 
-`INSTAGRAM_PASSWORD = 'YourPassword'`
+`VK_PUBLIC_ID = 'Your_VK_Public_Id'`
+ID группы, в которую буду поститься комиксы:
 
 ### Пример запуска
 
-
 ```
-python comics-vk.py
+python xckd-vk.py
 ``` 
 
 # Цель проекта
