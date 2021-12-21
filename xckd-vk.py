@@ -1,21 +1,30 @@
 import os
 import requests
+import logging
 from dotenv import load_dotenv
 from random import randint
-from pprint import pprint
 
 
-IMAGES_DIR = 'files'
 VK_API_VERSION = '5.131'
 
+logger = logging.getLogger('vk_logger')
 
-def download_image(image_url, params={}):
+
+def check_response_vk(response):
+    if 'error' in response.keys():
+        logger.error(response['error']['error_msg'])
+        exit()
+
+
+def download_image(image_url):
     filename = os.path.split(image_url)[1]
-    response = requests.get(image_url, params=params)
-    if response.ok:
-        with open(os.path.join(IMAGES_DIR, filename), 'wb') as file:
-            file.write(response.content)
-        return filename
+
+    response = requests.get(image_url)
+    response.raise_for_status()
+
+    with open(filename, 'wb') as file:
+        file.write(response.content)
+    return filename
 
 
 def fetch_last_comics_xkcd():
@@ -33,6 +42,7 @@ def fetch_random_comics_xkcd():
 
     response = requests.get(comics_url)
     response.raise_for_status()
+
     comics = response.json()
     download_image(comics['img'])
 
@@ -47,14 +57,14 @@ def requests_get_vk_api(access_token, api_metod, params={}):
 
     response = requests.get(api_url, params=params)
     response.raise_for_status()
+    check_response_vk(response.json())
 
     return response.json()['response']
 
 
 def upload_photo(upload_server, filename):
-    upload_image = os.path.join(IMAGES_DIR, filename)
 
-    with open(upload_image, 'rb') as file:
+    with open(filename, 'rb') as file:
         api_url = upload_server['upload_url']
         files = {
             'file': file,
@@ -62,18 +72,9 @@ def upload_photo(upload_server, filename):
 
         response = requests.post(api_url, files=files)
         response.raise_for_status()
+        check_response_vk(response.json())
 
-    return response.json()
-
-
-def get_groups(access_token, extended=False, count=0):
-    params = {
-        'extended': extended,
-        'count': count,
-    }
-    response = requests_get_vk_api(access_token, 'groups.get', params)
-
-    return response
+        return response.json()
 
 
 def get_wall_upload_server(access_token, group_id):
@@ -99,6 +100,7 @@ def save_wall_photo(access_token, group_id, upload_photo_params):
     }
     response = requests.post(api_url, params=params)
     response.raise_for_status()
+    check_response_vk(response.json())
 
     return response.json()['response']
 
@@ -107,7 +109,6 @@ def wall_post(access_token, group_id, message, attachments):
     attach = 'photo{}_{}'.format(
         str(attachments['owner_id']), str(attachments['id'])
     )
-    pprint(attach)
     params = {
         'owner_id': -group_id,
         'from_group': 1,
@@ -122,24 +123,37 @@ def wall_post(access_token, group_id, message, attachments):
     return response
 
 
-if __name__ == '__main__':
-
-    os.makedirs(IMAGES_DIR, exist_ok=True)
-
-    load_dotenv()
-    access_token = os.getenv('VK_ACCESS_TOKEN')
-    group_id = int(os.getenv('VK_PUBLIC_ID'))
-
+def random_comics_post():
     comics = fetch_random_comics_xkcd()
     comics_filename = os.path.split(comics['img'])[1]
     comics_comment = comics['alt']
 
     upload_server = get_wall_upload_server(access_token, group_id)
-    upload_photo_params = upload_photo(upload_server, comics_filename)
-    upload_photo = save_wall_photo(access_token, group_id, upload_photo_params)
-    pprint(wall_post(
+    photo = save_wall_photo(
+        access_token,
+        group_id,
+        upload_photo(upload_server, comics_filename)
+    )
+    wall_post(
         access_token,
         group_id,
         comics_comment,
-        upload_photo[0])
+        photo[0]
     )
+    logger.info('Пост опубликован!')
+    os.remove(comics_filename)
+
+
+if __name__ == '__main__':
+
+    load_dotenv()
+    access_token = os.getenv('VK_ACCESS_TOKEN')
+    group_id = int(os.getenv('VK_PUBLIC_ID'))
+
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+
+    try:
+        random_comics_post()
+    except Exception:
+        logger.exception('Ошибка')
