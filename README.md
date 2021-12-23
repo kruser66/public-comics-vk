@@ -6,19 +6,23 @@
 
 Python3 должен быть уже установлен. Затем используйте pip (или pip3, если есть конфликт с Python2) для установки зависимостей:
 
-```
+```Python
 pip install -r requirements.txt
 ```
 
 ### Переменные окружения
 Для корректной работы модуля необходимы следующие переменные окружения:
 
-`VK_ACCESS_TOKEN = 'Your_VK_App_Access_Token'`
+```Python
+VK_ACCESS_TOKEN='YourVKAppAccessToken'
+```
 1. Создать приложение в VK.
 2. По номеру приложения `client_id` используя [Implicit Flow](https://dev.vk.com/api/access-token/implicit-flow-user) получить `access_token`
 3. Необходимы права `photos`, `groups`, `wall` и `offline`
 
-`VK_PUBLIC_ID = 'Your_VK_Public_Id'`
+```Python
+VK_PUBLIC_ID='YourVKPublicId'
+```
 ID группы, в которую буду поститься комиксы.
 
 ### Пример запуска
@@ -29,4 +33,4 @@ python xckd-vk.py
 
 # Цель проекта
 
-Код написан в образовательных целях на онлайн-курс для веб-разработчиков [Devman](dvmn.org).
+Код написан в образовательных целях на онлайн-курс для веб-разработчиков [Devman](https://dvmn.org/).
