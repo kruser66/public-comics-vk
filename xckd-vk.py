@@ -3,7 +3,7 @@ import requests
 import logging
 from dotenv import load_dotenv
 from random import randint
-
+from urllib.parse import unquote, urlsplit
 
 VK_API_VERSION = '5.131'
 
@@ -17,7 +17,8 @@ def check_response_vk(response):
 
 
 def download_image(image_url):
-    filename = os.path.split(image_url)[1]
+    url = unquote(image_url)
+    filename = os.path.split(urlsplit(url).path)[1]
 
     response = requests.get(image_url)
     response.raise_for_status()
