@@ -49,7 +49,8 @@ def fetch_random_comics_xkcd():
     response.raise_for_status()
 
     comics = response.json()
-    download_image(comics['img'])
+    filename = download_image(comics['img'])
+    comics['filename'] = filename
 
     return comics
 
@@ -140,7 +141,7 @@ def publish_wall_post(
 
 def publish_random_comics_post(access_token, api_version, group_id):
     comics = fetch_random_comics_xkcd()
-    comics_filename = os.path.split(comics['img'])[1]
+    comics_filename = comics['filename']
     comics_comment = comics['alt']
 
     upload_server = get_wall_upload_server(access_token, api_version, group_id)
@@ -178,5 +179,5 @@ if __name__ == '__main__':
 
     finally:
         for file in os.listdir():
-            if file.endswith('.png'):
+            if file.endswith('.png') or file.endswith('.jpg'):
                 os.remove(file)
