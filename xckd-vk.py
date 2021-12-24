@@ -54,11 +54,11 @@ def fetch_random_comics_xkcd():
     return comics
 
 
-def call_get_vk_api(access_token, api_metod, params={}):
+def call_get_vk_api(access_token, api_version, api_metod, params={}):
     api_url = f'https://api.vk.com/method/{api_metod}'
 
     params['access_token'] = access_token
-    params['v'] = VK_API_VERSION
+    params['v'] = api_version
 
     response = requests.get(api_url, params=params)
     response.raise_for_status()
@@ -87,22 +87,22 @@ def upload_photo(upload_server, filename):
     return uploaded_photo
 
 
-def get_wall_upload_server(access_token, group_id):
+def get_wall_upload_server(access_token, api_version, group_id):
     params = {
         'group_id': group_id,
     }
     upload_server = call_get_vk_api(
-        access_token, 'photos.getWallUploadServer', params
+        access_token, api_version, 'photos.getWallUploadServer', params
     )
 
     return upload_server
 
 
-def save_wall_photo(access_token, group_id, upload_photo_params):
+def save_wall_photo(access_token, api_version, group_id, upload_photo_params):
     api_url = 'https://api.vk.com/method/photos.saveWallPhoto'
     params = {
         'access_token': access_token,
-        'v': VK_API_VERSION,
+        'v': api_version,
         'group_id': group_id,
         'photo': upload_photo_params['photo'],
         'hash': upload_photo_params['hash'],
@@ -117,7 +117,13 @@ def save_wall_photo(access_token, group_id, upload_photo_params):
     return saved_photo
 
 
-def publish_wall_post(access_token, group_id, message, attachments):
+def publish_wall_post(
+        access_token,
+        api_version,
+        group_id,
+        message,
+        attachments):
+
     attach = 'photo{}_{}'.format(
         str(attachments['owner_id']), str(attachments['id'])
     )
@@ -129,25 +135,27 @@ def publish_wall_post(access_token, group_id, message, attachments):
     }
 
     post = call_get_vk_api(
-        access_token, 'wall.post', params
+        access_token, api_version, 'wall.post', params
     )
 
     return post
 
 
-def publish_random_comics_post():
+def publish_random_comics_post(access_token, api_version, group_id):
     comics = fetch_random_comics_xkcd()
     comics_filename = os.path.split(comics['img'])[1]
     comics_comment = comics['alt']
 
-    upload_server = get_wall_upload_server(access_token, group_id)
+    upload_server = get_wall_upload_server(access_token, api_version, group_id)
     photo = save_wall_photo(
         access_token,
+        api_version,
         group_id,
         upload_photo(upload_server, comics_filename)
     )
     publish_wall_post(
         access_token,
+        api_version,
         group_id,
         comics_comment,
         photo[0]
@@ -165,7 +173,7 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     try:
-        publish_random_comics_post()
+        publish_random_comics_post(access_token, VK_API_VERSION, group_id)
 
     except Exception:
         logger.exception('Ошибка')
