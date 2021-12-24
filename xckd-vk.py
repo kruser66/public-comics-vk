@@ -160,6 +160,7 @@ def publish_random_comics_post(access_token, api_version, group_id):
         photo[0]
     )
     logger.info('Пост опубликован!')
+    os.remove(comics_filename)
 
 
 if __name__ == '__main__':
