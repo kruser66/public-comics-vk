@@ -124,7 +124,7 @@ def publish_wall_post(access_token, group_id, message, attachments):
     return response
 
 
-def random_comics_post():
+def publish_random_comics_post():
     comics = fetch_random_comics_xkcd()
     comics_filename = os.path.split(comics['img'])[1]
     comics_comment = comics['alt']
@@ -142,7 +142,6 @@ def random_comics_post():
         photo[0]
     )
     logger.info('Пост опубликован!')
-    os.remove(comics_filename)
 
 
 if __name__ == '__main__':
@@ -155,6 +154,12 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     try:
-        random_comics_post()
+        publish_random_comics_post()
+
     except Exception:
         logger.exception('Ошибка')
+
+    finally:
+        for file in os.listdir():
+            if file.endswith('.png'):
+                os.remove(file)
