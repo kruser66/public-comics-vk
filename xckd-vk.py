@@ -25,6 +25,7 @@ def download_image(image_url):
 
     with open(filename, 'wb') as file:
         file.write(response.content)
+
     return filename
 
 
@@ -34,12 +35,16 @@ def fetch_last_comics_xkcd():
     response = requests.get(comics_url)
     response.raise_for_status()
 
-    return response.json()['num']
+    last_comics_number = response.json()['num']
+
+    return last_comics_number
 
 
 def fetch_random_comics_xkcd():
     comics_number = randint(1, fetch_last_comics_xkcd())
-    comics_url = f'https://xkcd.com/{str(comics_number)}/info.0.json'
+    print(type(comics_number))
+    # comics_url = f'https://xkcd.com/{str(comics_number)}/info.0.json'
+    comics_url = f'https://xkcd.com/{comics_number}/info.0.json'
 
     response = requests.get(comics_url)
     response.raise_for_status()
@@ -58,9 +63,11 @@ def call_get_vk_api(access_token, api_metod, params={}):
 
     response = requests.get(api_url, params=params)
     response.raise_for_status()
-    check_response_vk(response.json())
 
-    return response.json()['response']
+    response_vk_api = response.json()
+    check_response_vk(response_vk_api)
+
+    return response_vk_api['response']
 
 
 def upload_photo(upload_server, filename):
@@ -74,20 +81,22 @@ def upload_photo(upload_server, filename):
         response = requests.post(api_url, files=files)
 
     response.raise_for_status()
-    check_response_vk(response.json())
+    uploaded_photo = response.json()
 
-    return response.json()
+    check_response_vk(uploaded_photo)
+
+    return uploaded_photo
 
 
 def get_wall_upload_server(access_token, group_id):
     params = {
         'group_id': group_id,
     }
-    response = call_get_vk_api(
+    upload_server = call_get_vk_api(
         access_token, 'photos.getWallUploadServer', params
     )
 
-    return response
+    return upload_server
 
 
 def save_wall_photo(access_token, group_id, upload_photo_params):
@@ -104,7 +113,9 @@ def save_wall_photo(access_token, group_id, upload_photo_params):
     response.raise_for_status()
     check_response_vk(response.json())
 
-    return response.json()['response']
+    saved_photo = response.json()['response']
+
+    return saved_photo
 
 
 def publish_wall_post(access_token, group_id, message, attachments):
@@ -118,11 +129,11 @@ def publish_wall_post(access_token, group_id, message, attachments):
         'attachments': attach,
     }
 
-    response = call_get_vk_api(
+    post = call_get_vk_api(
         access_token, 'wall.post', params
     )
 
-    return response
+    return post
 
 
 def publish_random_comics_post():
