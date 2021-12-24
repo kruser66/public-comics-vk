@@ -50,7 +50,7 @@ def fetch_random_comics_xkcd():
     return comics
 
 
-def requests_get_vk_api(access_token, api_metod, params={}):
+def call_get_vk_api(access_token, api_metod, params={}):
     api_url = f'https://api.vk.com/method/{api_metod}'
 
     params['access_token'] = access_token
@@ -82,7 +82,7 @@ def get_wall_upload_server(access_token, group_id):
     params = {
         'group_id': group_id,
     }
-    response = requests_get_vk_api(
+    response = call_get_vk_api(
         access_token, 'photos.getWallUploadServer', params
     )
 
@@ -106,7 +106,7 @@ def save_wall_photo(access_token, group_id, upload_photo_params):
     return response.json()['response']
 
 
-def wall_post(access_token, group_id, message, attachments):
+def publish_wall_post(access_token, group_id, message, attachments):
     attach = 'photo{}_{}'.format(
         str(attachments['owner_id']), str(attachments['id'])
     )
@@ -117,7 +117,7 @@ def wall_post(access_token, group_id, message, attachments):
         'attachments': attach,
     }
 
-    response = requests_get_vk_api(
+    response = call_get_vk_api(
         access_token, 'wall.post', params
     )
 
@@ -135,7 +135,7 @@ def random_comics_post():
         group_id,
         upload_photo(upload_server, comics_filename)
     )
-    wall_post(
+    publish_wall_post(
         access_token,
         group_id,
         comics_comment,
