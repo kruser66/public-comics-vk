@@ -72,10 +72,11 @@ def upload_photo(upload_server, filename):
         }
 
         response = requests.post(api_url, files=files)
-        response.raise_for_status()
-        check_response_vk(response.json())
 
-        return response.json()
+    response.raise_for_status()
+    check_response_vk(response.json())
+
+    return response.json()
 
 
 def get_wall_upload_server(access_token, group_id):
