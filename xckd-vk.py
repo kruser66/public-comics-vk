@@ -69,15 +69,12 @@ def call_get_vk_api(access_token, api_version, api_metod, params={}):
     return response_vk_api['response']
 
 
-def upload_photo(upload_server, filename):
-
+def upload_photo(filename, album_id, upload_url, user_id):
     with open(filename, 'rb') as file:
-        api_url = upload_server['upload_url']
         files = {
             'file': file,
         }
-
-        response = requests.post(api_url, files=files)
+        response = requests.post(upload_url, files=files)
 
     response.raise_for_status()
     uploaded_photo = response.json()
@@ -98,15 +95,15 @@ def get_wall_upload_server(access_token, api_version, group_id):
     return upload_server
 
 
-def save_wall_photo(access_token, api_version, group_id, upload_photo_params):
+def save_wall_photo(access_token, api_version, group_id, server, photo, hash):
     api_url = 'https://api.vk.com/method/photos.saveWallPhoto'
     params = {
         'access_token': access_token,
         'v': api_version,
         'group_id': group_id,
-        'photo': upload_photo_params['photo'],
-        'hash': upload_photo_params['hash'],
-        'server': upload_photo_params['server']
+        'photo': photo,
+        'hash': hash,
+        'server': server
     }
     response = requests.post(api_url, params=params)
     response.raise_for_status()
@@ -147,11 +144,12 @@ def publish_random_comics_post(access_token, api_version, group_id):
     comics_comment = comics['alt']
 
     upload_server = get_wall_upload_server(access_token, api_version, group_id)
+    uploaded_photo = upload_photo(comics_filename, **upload_server)
     photo = save_wall_photo(
         access_token,
         api_version,
         group_id,
-        upload_photo(upload_server, comics_filename)
+        **uploaded_photo
     )
     publish_wall_post(
         access_token,
