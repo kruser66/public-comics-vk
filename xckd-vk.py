@@ -12,8 +12,9 @@ logger = logging.getLogger('vk_logger')
 
 def check_response_vk(response):
     if 'error' in response.keys():
-        logger.error(response['error']['error_msg'])
-        exit()
+        error_msg = response['error']['error_msg']
+        logger.error(f'Ошибка вызова API VK: {error_msg}')
+        raise Exception(error_msg)
 
 
 def download_image(image_url):
@@ -42,8 +43,6 @@ def fetch_last_comics_xkcd():
 
 def fetch_random_comics_xkcd():
     comics_number = randint(1, fetch_last_comics_xkcd())
-    print(type(comics_number))
-    # comics_url = f'https://xkcd.com/{str(comics_number)}/info.0.json'
     comics_url = f'https://xkcd.com/{comics_number}/info.0.json'
 
     response = requests.get(comics_url)
