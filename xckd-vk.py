@@ -4,17 +4,25 @@ import logging
 from dotenv import load_dotenv
 from random import randint
 from urllib.parse import unquote, urlsplit
+from requests import (
+    ReadTimeout,
+    ConnectTimeout,
+    HTTPError,
+    Timeout,
+    ConnectionError
+)
+
 
 VK_API_VERSION = '5.131'
 
 logger = logging.getLogger('vk_logger')
 
 
-def check_response_vk(response):
+def check_by_error_response(response):
     if 'error' in response.keys():
         error_msg = response['error']['error_msg']
         logger.error(f'Ошибка вызова API VK: {error_msg}')
-        raise Exception(error_msg)
+        raise requests.HTTPError(error_msg)
 
 
 def download_image(image_url):
@@ -30,7 +38,7 @@ def download_image(image_url):
     return filename
 
 
-def fetch_last_comics_xkcd():
+def fetch_last_comics():
     comics_url = f'https://xkcd.com/info.0.json'
 
     response = requests.get(comics_url)
@@ -41,8 +49,8 @@ def fetch_last_comics_xkcd():
     return last_comics_number
 
 
-def fetch_random_comics_xkcd():
-    comics_number = randint(1, fetch_last_comics_xkcd())
+def fetch_random_comics():
+    comics_number = randint(1, fetch_last_comics())
     comics_url = f'https://xkcd.com/{comics_number}/info.0.json'
 
     response = requests.get(comics_url)
@@ -55,109 +63,123 @@ def fetch_random_comics_xkcd():
     return comics
 
 
-def call_get_vk_api(access_token, api_version, api_metod, params={}):
+def requests_vk_api_metod(access_token, api_version, api_metod, params={}):
     api_url = f'https://api.vk.com/method/{api_metod}'
 
-    params['access_token'] = access_token
-    params['v'] = api_version
+    api_params = params
+    api_params['access_token'] = access_token
+    api_params['v'] = api_version
 
-    response = requests.get(api_url, params=params)
+    response = requests.get(api_url, params=api_params)
     response.raise_for_status()
 
     response_vk_api = response.json()
-    check_response_vk(response_vk_api)
+    check_by_error_response(response_vk_api)
 
     return response_vk_api['response']
 
 
-def upload_photo(filename, album_id, upload_url, user_id):
+def upload_photo(filename, upload_url):
     with open(filename, 'rb') as file:
         files = {
             'file': file,
         }
         response = requests.post(upload_url, files=files)
+        response.raise_for_status()
 
-    response.raise_for_status()
     uploaded_photo = response.json()
 
-    check_response_vk(uploaded_photo)
+    check_by_error_response(uploaded_photo)
 
-    return uploaded_photo
+    return uploaded_photo.values()
 
 
 def get_wall_upload_server(access_token, api_version, group_id):
     params = {
         'group_id': group_id,
     }
-    upload_server = call_get_vk_api(
+    response = requests_vk_api_metod(
         access_token, api_version, 'photos.getWallUploadServer', params
     )
 
-    return upload_server
+    return response['upload_url']
 
 
-def save_wall_photo(access_token, api_version, group_id, server, photo, hash):
+def save_wall_photo(
+    access_token, api_version, group_id, server, photo, photo_hash
+):
     api_url = 'https://api.vk.com/method/photos.saveWallPhoto'
     params = {
         'access_token': access_token,
         'v': api_version,
         'group_id': group_id,
         'photo': photo,
-        'hash': hash,
+        'hash': photo_hash,
         'server': server
     }
     response = requests.post(api_url, params=params)
     response.raise_for_status()
-    check_response_vk(response.json())
+    saved_photo = response.json()
+    check_by_error_response(saved_photo)
 
-    saved_photo = response.json()['response']
-
-    return saved_photo
+    return saved_photo['response']
 
 
 def publish_wall_post(
-        access_token,
-        api_version,
-        group_id,
-        message,
-        attachments):
+        access_token, api_version, group_id, message,
+        owner_id, photo_id):
 
-    attach = 'photo{}_{}'.format(
-        str(attachments['owner_id']), str(attachments['id'])
-    )
     params = {
         'owner_id': -group_id,
         'from_group': 1,
         'message': message,
-        'attachments': attach,
+        'attachments': f'photo{owner_id}_{photo_id}',
     }
 
-    post = call_get_vk_api(
+    post = requests_vk_api_metod(
         access_token, api_version, 'wall.post', params
     )
 
     return post
 
 
+def upload_to_server_photo(
+        access_token, api_version, group_id, filename):
+
+    url = get_wall_upload_server(
+        access_token=access_token,
+        api_version=api_version,
+        group_id=group_id)
+
+    server, photo, photo_hash = upload_photo(filename, url)
+    photo = save_wall_photo(
+        access_token, api_version, group_id,
+        server, photo, photo_hash
+    )
+
+    return photo[0]
+
+
 def publish_random_comics_post(access_token, api_version, group_id):
-    comics = fetch_random_comics_xkcd()
+    comics = fetch_random_comics()
     comics_filename = comics['filename']
     comics_comment = comics['alt']
 
-    upload_server = get_wall_upload_server(access_token, api_version, group_id)
-    uploaded_photo = upload_photo(comics_filename, **upload_server)
-    photo = save_wall_photo(
-        access_token,
-        api_version,
-        group_id,
-        **uploaded_photo
+    photo = upload_to_server_photo(
+        access_token=access_token,
+        api_version=api_version,
+        group_id=group_id,
+        filename=comics_filename
     )
+    owner_id = photo['owner_id']
+    photo_id = photo['id']
     publish_wall_post(
-        access_token,
-        api_version,
-        group_id,
-        comics_comment,
-        photo[0]
+        access_token=access_token,
+        api_version=api_version,
+        group_id=group_id,
+        message=comics_comment,
+        owner_id=owner_id,
+        photo_id=photo_id
     )
     logger.info('Пост опубликован!')
     os.remove(comics_filename)
@@ -174,9 +196,14 @@ if __name__ == '__main__':
 
     try:
         publish_random_comics_post(access_token, VK_API_VERSION, group_id)
-
-    except Exception:
-        logger.exception('Ошибка')
+    except (
+        ReadTimeout,
+        ConnectTimeout,
+        HTTPError,
+        Timeout,
+        ConnectionError
+    ):
+        logger.exception('Ошибка requests')
 
     finally:
         for file in os.listdir():
