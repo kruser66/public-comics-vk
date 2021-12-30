@@ -19,7 +19,7 @@ logger = logging.getLogger('vk_logger')
 
 
 def check_by_error_response(response):
-    if 'error' in response.keys():
+    if 'error' in response:
         error_msg = response['error']['error_msg']
         logger.error(f'Ошибка вызова API VK: {error_msg}')
         raise requests.HTTPError(error_msg)
@@ -72,10 +72,10 @@ def requests_vk_api_metod(access_token, api_version, api_metod, params={}):
     response = requests.get(api_url, params=api_params)
     response.raise_for_status()
 
-    response_vk_api = response.json()
-    check_by_error_response(response_vk_api)
+    vk_api_response = response.json()
+    check_by_error_response(vk_api_response)
 
-    return response_vk_api['response']
+    return vk_api_response['response']
 
 
 def upload_photo(filename, upload_url):
