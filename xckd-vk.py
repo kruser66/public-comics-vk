@@ -94,7 +94,7 @@ def upload_photo(filename, upload_url):
     return uploaded_photo.values()
 
 
-def get_wall_upload_server(access_token, api_version, group_id):
+def get_wall_upload_url(access_token, api_version, group_id):
     params = {
         'group_id': group_id,
     }
@@ -143,10 +143,10 @@ def publish_wall_post(
     return post
 
 
-def upload_to_server_photo(
+def upload_photo_on_server(
         access_token, api_version, group_id, filename):
 
-    url = get_wall_upload_server(
+    url = get_wall_upload_url(
         access_token=access_token,
         api_version=api_version,
         group_id=group_id)
@@ -165,7 +165,7 @@ def publish_random_comics_post(access_token, api_version, group_id):
     comics_filename = comics['filename']
     comics_comment = comics['alt']
 
-    photo = upload_to_server_photo(
+    photo = upload_photo_on_server(
         access_token=access_token,
         api_version=api_version,
         group_id=group_id,
