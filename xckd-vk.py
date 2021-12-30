@@ -59,17 +59,22 @@ def fetch_random_comics():
     comics = response.json()
     filename = download_image(comics['img'])
 
-    return filename, comics_comment
+    return filename, comics['alt']
 
 
-def requests_vk_api_metod(access_token, api_version, api_metod, params={}):
+def requests_vk_api_metod(access_token, api_version, api_metod, params=None):
     api_url = f'https://api.vk.com/method/{api_metod}'
 
-    api_params = params
-    api_params['access_token'] = access_token
-    api_params['v'] = api_version
+    if not params:
+        params = {}
 
-    response = requests.get(api_url, params=api_params)
+    common_params = {
+        'access_token': access_token,
+        'v': api_version,
+    }
+    common_params.update(params)
+
+    response = requests.get(api_url, params=common_params)
     response.raise_for_status()
 
     vk_api_response = response.json()
@@ -193,7 +198,13 @@ if __name__ == '__main__':
 
     try:
         comics_filename, comics_comment = fetch_random_comics()
-        publish_random_comics_post(access_token, VK_API_VERSION, group_id)
+        publish_random_comics_post(
+            access_token=access_token,
+            api_version=VK_API_VERSION,
+            group_id=group_id,
+            comics_filename=comics_filename,
+            comics_comment=comics_comment
+        )
         os.remove(comics_filename)
     except (
         ReadTimeout,
