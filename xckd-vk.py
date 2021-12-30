@@ -58,9 +58,8 @@ def fetch_random_comics():
 
     comics = response.json()
     filename = download_image(comics['img'])
-    comics['filename'] = filename
 
-    return comics
+    return filename, comics_comment
 
 
 def requests_vk_api_metod(access_token, api_version, api_metod, params={}):
@@ -161,11 +160,9 @@ def upload_photo_on_server(
     return photo[0]
 
 
-def publish_random_comics_post(access_token, api_version, group_id):
-    comics = fetch_random_comics()
-    comics_filename = comics['filename']
-    comics_comment = comics['alt']
-
+def publish_random_comics_post(
+    access_token, api_version, group_id, comics_filename, comics_comment
+):
     photo = upload_photo_on_server(
         access_token=access_token,
         api_version=api_version,
@@ -183,7 +180,6 @@ def publish_random_comics_post(access_token, api_version, group_id):
         photo_id=photo_id
     )
     logger.info('Пост опубликован!')
-    os.remove(comics_filename)
 
 
 if __name__ == '__main__':
@@ -196,15 +192,17 @@ if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler())
 
     try:
+        comics_filename, comics_comment = fetch_random_comics()
         publish_random_comics_post(access_token, VK_API_VERSION, group_id)
+        os.remove(comics_filename)
     except (
         ReadTimeout,
         ConnectTimeout,
         HTTPError,
         Timeout,
         ConnectionError
-    ):
-        logger.exception('Ошибка requests')
+    ) as error:
+        logger.exception(f'Ошибка в запросе: {error}')
 
     finally:
         for file in os.listdir():
